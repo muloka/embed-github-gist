@@ -20,15 +20,15 @@ License: New BSD License - http://www.opensource.org/licenses/bsd-license.php
  * @var int
  */
 if ( !defined('EMBED_GISTHUB_DEFAULT_TTL') ) {
-	define('EMBED_GISTHUB_DEFAULT_TTL', 86400);	// 60*60*24 (1 day)
+    define('EMBED_GISTHUB_DEFAULT_TTL', 86400); // 60*60*24 (1 day)
 }
 
 if ( !defined('EMBED_GISTHUB_INLINE_HTML') ) {
-	define('EMBED_GISTHUB_INLINE_HTML', true);
+    define('EMBED_GISTHUB_INLINE_HTML', true);
 }
 
 if ( !defined('EMBED_GISTHUB_BYPASS_CACHE') ) {
-	define('EMBED_GISTHUB_BYPASS_CACHE', false);
+    define('EMBED_GISTHUB_BYPASS_CACHE', false);
 }
 
 /**
@@ -66,29 +66,35 @@ function embed_github_gist_prefer_inline_html() {
  * @param string $file Name of file
  */
 function embed_github_gist($id, $ttl = null, $bump = null, $file = null) {
-	$gist = '';
+    $gist = '';
 
-	if ( !class_exists('WP_Http') ) {
-		require_once ABSPATH.WPINC.'/class-http.php';
-	}
+    if ( !class_exists('WP_Http') ) {
+        require_once ABSPATH.WPINC.'/class-http.php';
+    }
 
     $key = embed_github_gist_build_cache_key($id, $bump, $file);
+
     if ( embed_github_gist_bypass_cache() or false === ( $gist = get_transient($key) ) ) {
-    	$http = new WP_Http;
+        $http = new WP_Http;
     
         if ( embed_github_gist_prefer_inline_html() and function_exists('json_decode') ) {
-            if ($file) $file = "?file=$file";
-            $args = array('sslverify' => false);
+            if ( $file ) $file = "?file=$file";
+
+            $args   = array('sslverify' => false);
             $result = $http->request('https://gist.github.com/' . $id . '.json' . $file, $args);
+
             if ( is_wp_error($result) ) {
                 echo $result->get_error_message();
             }
+
             $json = json_decode($result['body']);
             $gist = $json->div;
         } else {
-            if ( ! $file ) $file = 'file';
+            if ( !$file ) $file = 'file';
+
             $result = $http->request('https://gist.github.com/raw/' . $id . '/' . $file);
-            $gist = '<script src="https://gist.github.com/' . $id . '.js?file=' . $file . '" type="text/javascript"></script>';
+
+            $gist  = '<script src="https://gist.github.com/' . $id . '.js?file=' . $file . '" type="text/javascript"></script>';
             $gist .= '<noscript><div class="embed-github-gist-source"><code><pre>';
             $gist .= htmlentities($result['body']);
             $gist .= '</pre></code></div></noscript>';
@@ -96,8 +102,8 @@ function embed_github_gist($id, $ttl = null, $bump = null, $file = null) {
         
         unset($result, $http);
         
-        if ( ! embed_github_gist_bypass_cache() ) {
-            if ( ! $ttl ) $ttl = EMBED_GISTHUB_DEFAULT_TTL;
+        if ( !embed_github_gist_bypass_cache() ) {
+            if ( !$ttl ) $ttl = EMBED_GISTHUB_DEFAULT_TTL;
             set_transient($key, $gist, $ttl);
         }
     }
@@ -112,13 +118,13 @@ function embed_github_gist($id, $ttl = null, $bump = null, $file = null) {
  */
 function handle_embed_github_gist_shortcode($atts, $content = null) {
     extract(shortcode_atts(array(
-        'id' => null,
+        'id'   => null,
         'file' => null,
-        'ttl' => null,
+        'ttl'  => null,
         'bump' => null,
     ), $atts));
 
-    if ( ! $id ) {
+    if ( !$id ) {
         if ( $content ) {
             if ( preg_match('/\s*https?.+\/(\d+)/', $content, $matches) ) {
                 $id = $matches[1];
@@ -147,23 +153,22 @@ function handle_embed_github_gist_init() {
  * 
  * @author oncletom
  */
-function embed_github_gist_post_candidate()
-{
-	global $posts;
-	
-	foreach ($posts as $p) {
-		if (preg_match('/\[gist[^\]]*\]/siU', $p->post_content)) {
-			embed_github_gist_styles();
+function embed_github_gist_post_candidate() {
+    global $posts;
+    
+    foreach ($posts as $p) {
+        if ( preg_match('/\[gist[^\]]*\]/siU', $p->post_content) ) {
+            embed_github_gist_styles();
 
-			return true;
-		}
-	}
+            return true;
+        }
+    }
 
-	return false;
+    return false;
 }
 
 add_action('init', 'handle_embed_github_gist_init');
 
-if ( !is_admin()) {
-	add_action('wp', 'embed_github_gist_post_candidate');
+if ( !is_admin() ) {
+    add_action('wp', 'embed_github_gist_post_candidate');
 }
